@@ -11,3 +11,6 @@
 
 # Editor
 **/.vscode/
+
+# Cache
+**/.cache
