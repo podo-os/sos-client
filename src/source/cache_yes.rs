@@ -30,8 +30,9 @@ where
             Ok(Self {
                 #[cfg(feature = "look-ahead")]
                 prebuilt: load_prebuilt_data(root, &imp)?,
-                data: bincode::deserialize_from(file)?,
                 root: root.to_owned(),
+                stack: Vec::new(),
+                data: bincode::deserialize_from(file)?,
                 imp,
             })
         } else {

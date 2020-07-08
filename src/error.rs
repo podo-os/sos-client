@@ -1,5 +1,6 @@
 #[derive(Debug)]
 pub enum Error {
+    Cycle(Vec<String>),
     IO(::std::io::Error),
     #[cfg(feature = "bincode")]
     Bincode(::bincode::ErrorKind),

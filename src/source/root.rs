@@ -1,5 +1,7 @@
 use std::collections::BTreeMap;
-use std::path::{Path, PathBuf};
+use std::path::Path;
+#[cfg(any(not(feature = "look-ahead"), feature = "cache"))]
+use std::path::PathBuf;
 
 use super::base::SourceTrait;
 #[cfg(feature = "look-ahead")]
@@ -12,9 +14,11 @@ where
 {
     #[cfg(feature = "look-ahead")]
     pub(super) prebuilt: PrebuiltData<Imp::PrebuiltCode>,
-
-    pub(super) data: BTreeMap<String, V>,
+    #[cfg(any(not(feature = "look-ahead"), feature = "cache"))]
     pub(super) root: PathBuf,
+
+    pub(super) stack: Vec<String>,
+    pub(super) data: BTreeMap<String, Option<V>>,
     pub(super) imp: Imp,
 }
 
@@ -26,8 +30,10 @@ where
         Ok(Self {
             #[cfg(feature = "look-ahead")]
             prebuilt: PrebuiltData::load(root, &imp),
-            data: BTreeMap::new(),
+            #[cfg(any(not(feature = "look-ahead"), feature = "cache"))]
             root: root.to_owned(),
+            stack: Vec::new(),
+            data: BTreeMap::new(),
             imp,
         })
     }
@@ -40,20 +46,33 @@ where
     pub fn find<'a, K: AsRef<str>>(&'a mut self, key: K) -> Result<Option<&'a V>> {
         let key = key.as_ref();
         self.ensure_compiled(key)?;
-        Ok(self.data.get(key))
+        Ok(self.data.get(key).map(|x| x.as_ref().unwrap()))
     }
 
     pub fn find_mut<K: AsRef<str>>(&mut self, key: K) -> Result<Option<&mut V>> {
         let key = key.as_ref();
         self.ensure_compiled(key)?;
-        Ok(self.data.get_mut(key))
+        Ok(self.data.get_mut(key).map(|x| x.as_mut().unwrap()))
     }
 
     fn ensure_compiled(&mut self, key: &str) -> Result<()> {
-        if self.data.contains_key(key) {
-            Ok(())
-        } else {
-            self.compile(key)
+        match self.data.get(key) {
+            Some(Some(_)) => Ok(()),
+            Some(None) => {
+                self.stack.push(key.to_owned());
+                Err(Error::Cycle(self.stack.clone()))
+            }
+            None => {
+                // push stack
+                self.stack.push(key.to_owned());
+                self.data.insert(key.to_owned(), None);
+                // pop stack
+                if let false = self.compile(key)? {
+                    self.data.remove(key);
+                }
+                self.stack.pop();
+                Ok(())
+            }
         }
     }
 }

@@ -50,15 +50,15 @@ impl<V, Imp> SourceRoot<V, Imp>
 where
     Imp: SourceTrait<Code = V>,
 {
-    pub(super) fn compile(&mut self, key: &str) -> Result<()> {
+    pub(super) fn compile(&mut self, key: &str) -> Result<bool> {
         match self.prebuilt.inner.remove(key) {
             Some(source) => {
                 let code = self.imp.compile_source(source)?;
 
-                self.data.insert(key.to_owned(), code);
-                Ok(())
+                self.data.insert(key.to_owned(), Some(code));
+                Ok(true)
             }
-            None => Ok(()),
+            None => Ok(false),
         }
     }
 }
