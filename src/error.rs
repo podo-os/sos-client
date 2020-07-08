@@ -13,12 +13,14 @@ impl From<::std::io::Error> for Error {
     }
 }
 
+#[cfg(feature = "bincode")]
 impl From<::bincode::ErrorKind> for Error {
     fn from(e: ::bincode::ErrorKind) -> Self {
         Self::Bincode(e)
     }
 }
 
+#[cfg(feature = "bincode")]
 impl From<::bincode::Error> for Error {
     fn from(e: ::bincode::Error) -> Self {
         Self::Bincode(*e)
