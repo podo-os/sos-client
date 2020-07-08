@@ -19,7 +19,6 @@ impl<
         #[cfg(not(feature = "cache"))] D,
     > PrebuiltData<D>
 {
-    #[cfg(feature = "cache")]
     pub fn load<P, Imp>(root: P, imp: &Imp) -> Self
     where
         P: AsRef<Path>,
